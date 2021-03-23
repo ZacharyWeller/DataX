@@ -1,0 +1,132 @@
+df = House_Price
+summary(df) ## EDD
+
+#observations from EDD data
+#n_Hotrooms and rainfall have outliers
+#n_hos_beds has missing values
+#bus_term is a useless variable 
+
+
+#Outlier Treatment 
+#Upper Value Outlier 
+quantile(df$n_hot_rooms, 0.99) # equals 99 percentile value
+upper_Value = 3*quantile(df$n_hot_rooms, 0.99)
+upper_Value
+df$n_hot_rooms[df$n_hot_rooms > upper_Value] = upper_Value
+summary(df$n_hot_rooms)
+#Lower value Outlier
+Lower_value = .3*quantile(df$rainfall, 0.01) # equals 1 percentile value
+df$rainfall[df$rainfall < Lower_value] = Lower_value
+summary(df$rainfall)
+
+# Missing values
+# Replace with mean 
+mean(df$n_hos_beds, na.rm = TRUE) # mean without NA values
+which(is.na(df$n_hos_beds)) #identify which postions have NA values are in for a column 
+df$n_hos_beds[is.na(df$n_hos_beds)] = mean(df$n_hos_beds, na.rm = TRUE) # change NA values to mean.
+summary(df$n_hos_beds)
+which(is.na(df$n_hos_beds))
+
+df$avg_dist = (df$dist1+df$dist2+df$dist3+df$dist4) / 4
+View(df)
+df2 = df[, -6:-9]
+View(df2)
+df=df2
+rm(df2) #remove df2
+# remove bus_term is a useless variable 
+df = df[,-13]
+##Dummy variables for categorical data
+library(dummies)
+df = dummy.data.frame(df) #change categorical data to 0,1
+View(df)
+df = df[, -8] # remove none columns 
+df = df[, -13]
+#Correlation matrix 
+cor(df)
+round(cor(df),2)
+## Air_qual highly correlated with parks 
+df = df[, -16] # remove parks as it is less correlated with price
+#Test train split
+install.packages("caTools")
+library(caTools)
+set.seed(0)
+
+split=sample.split(df, SplitRatio = 0.8)
+Training_set = subset(df,split == TRUE)
+test_set = subset(df, split == FALSE)
+
+#####################################################
+#Classification model 
+#1 Logistic Regression
+#2 Linear Discriminant Analysis  
+#3 K nearest Neighbor
+
+# business questions
+#1 prediction question  will the house be sold within three minths or not.
+#2 inferential Question How accurately an we estimate we effect of each variable on response variable.  
+
+#1 Logistic Regression 
+library(caTools)
+set.seed(0)
+
+train_fit = glm(Sold~., data = Training_set, family = binomial)
+test_probs = predict(train_fit, test_set, type = 'response')
+test_pred= rep("NO", 120)
+test_pred[test_probs>.5] = 'YES'
+table(test_pred, test_set$Sold)
+
+#2 Quadratic Discriminant Analysis split data
+library(MASS)
+
+qda_train_fit = lda(Sold~.,data = Training_set)
+qda_pred = predict(qda_train_fit, test_set)
+qda_pred$posterior
+qda.class = lda_pred$class
+qda.class
+table(qda.class, test_set$Sold)
+
+#2 Linear Discriminant Analysis  split data 
+#Test train split
+set.seed(0)
+
+split=sample.split(df, SplitRatio = 0.8)
+Training_set = subset(df,split == TRUE)
+test_set = subset(df, split == FALSE)
+library(RCurl)
+write_csv(Training_set, "Training_set.csv")
+write_csv(test_set, "Testing_set.csv" )
+TrainSet = read.csv("Training_set.csv", header = TRUE)
+
+
+lda_train_fit = lda(Sold~.,data = Training_set)
+lda_train_fit
+lda_pred = predict(lda_train_fit, test_set)
+lda_pred$posterior
+lda.class = lda_pred$class
+lda.class
+table(lda.class, test_set$Sold)
+sum(lda_pred$posterior[ ,1]>.8) # is class 1 with predictor >.8
+
+model = lda_train_fit = lda(Sold~.,data = Training_set)
+saveRDS(model, "model.rds")
+#3 K nearest Neighbor 
+library(class)
+trainX = Training_set[ ,-16]
+testX = test_set[ ,-16]
+trainy = Training_set$Sold
+testy = test_set$Sold
+k=3
+trainX_s = scale(trainX)
+testX_s = scale(testX)
+set.seed(0)
+knn_pred = knn(trainX_s, testX_s, trainy, k=k)
+table(knn_pred,testy)
+
+# Results from three models
+
+# Logistic Regression 
+ table(test_pred, test_set$Sold) # 65% accuracy (42+36)/120 (total correct/total obs)
+# Linear Discrimant 
+table(lda.class, test_set$Sold) # 66% accuracy (44+36)/120 (total correct/total obs)
+# KNN
+table(knn_pred,testy) # 55% accuracy (38+28)/120 (total correct/total obs)
