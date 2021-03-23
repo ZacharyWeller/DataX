@@ -19,9 +19,8 @@ library(RCurl)
 # View the data
 View(iris)
 
-#############################
+
 # Display summary statistics
-#############################
 
 # head() / tail()
 head(iris, 5)
@@ -74,7 +73,6 @@ hist(iris$Sepal.Width)
 hist(iris$Sepal.Width, col = "red")   # Makes red bars
 
 # Feature plots
-# https://www.machinelearningplus.com/machine-learning/caret-package/
 featurePlot(x = iris[,1:4], 
             y = iris$Species, 
             plot = "box",
@@ -92,7 +90,6 @@ set.seed(100)
 TrainingIndex <- createDataPartition(iris$Species, p=0.8, list = FALSE)
 TrainingSet <- iris[TrainingIndex,] # Training Set
 TestingSet <- iris[-TrainingIndex,] # Test Set
-
 
 ###############################
 # SVM model (polynomial kernel)
@@ -134,3 +131,5 @@ print(Model.cv.confusion)
 Importance <- varImp(Model)
 plot(Importance)
 plot(Importance, col = "red")
+
+
